@@ -78,21 +78,21 @@ def download_dir(prefix, local, bucket, client=s3_client):
 ###################################
 
 k = download_dir(git_s3_store_key, temp_location, git_s3_store, s3_client)
-  keys_str = str(k)
-  ## Check local repo diff with remote repo
-  repo = Repo(local_git_folder)
-  origin = repo.remotes.origin
-  print("REMOTE:" + origin.url)
-  origin.fetch()
-  diff_txt = repo.git.diff("--stat", "HEAD",  "origin/master", local_git_folder)
-  diff_txt.count("/csse_covid_19_daily_reports/")
+keys_str = str(k)
+## Check local repo diff with remote repo
+repo = Repo(local_git_folder)
+origin = repo.remotes.origin
+print("REMOTE:" + origin.url)
+origin.fetch()
+diff_txt = repo.git.diff("--stat", "HEAD",  "origin/master", local_git_folder)
+diff_txt.count("/csse_covid_19_daily_reports/")
 
-  #jhu_changes = re.findall("\/csse_covid_19_daily_reports\/.*.csv", diff_txt)
+#jhu_changes = re.findall("\/csse_covid_19_daily_reports\/.*.csv", diff_txt)
   
-  ## Pull latest changes from remote
-  origin.pull()
+## Pull latest changes from remote
+origin.pull()
 
-  ## Upload pulled data back into S3 git store
-  s3_updates = upload_files(local_git_folder,source_bucket,source_key)
+## Upload pulled data back into S3 git store
+s3_updates = upload_files(local_git_folder,source_bucket,source_key)
 
-  ## Upload new data into JHU S3 store
+## Upload new data into JHU S3 store
