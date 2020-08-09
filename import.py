@@ -32,9 +32,10 @@ dest_s3_bucket = "tanmatth-emr"
 dest_s3_basekey = "/covid-19/jhu/"
 
 ### Data type folders
-world_reports = "csse_covid_19_daily_reports"
-us_only_reports = "csse_covid_19_daily_reports_us"
-timeseries_reports = "csse_covid_19_time_series"
+data_folder = "csse_covid_19_data/"
+world_reports = "csse_covid_19_daily_reports/"
+us_only_reports = "csse_covid_19_daily_reports_us/"
+timeseries_reports = "csse_covid_19_time_series/"
 
 ### S3 Objects
 s3_client = boto3.client('s3')
@@ -84,6 +85,10 @@ def download_dir(prefix, local, bucket, client=s3_client):
         client.download_file(bucket, k, dest_pathname)
     
     return keys
+
+def getCsvFile(month,day,year):
+  jhu_file = month + "-" + day + "-" + year + ".csv"
+  return jhu_file
 
 def put_dynamo_check(day,month,year,git_status):
   dynamodb = boto3.resource("dynamodb", region_name='us-east-2')
@@ -136,10 +141,23 @@ def upload_s3(day,month,year,jhu_file):
 
 #status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", "/data/git/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/08-07-2020.csv")
 
+# World Daily Reports
 
 curr_date = world_start_date
-for i in range( (end_date - world_start_date).days + 1 ):
+world_folder = temp_location + data_folder + world_reports
+
+repo = Repo(temp_location)
+
+for i in range( (end_date - world_start_date).days ):
     print(curr_date)
+    day = str(currdate.day).rjust(2, '0')
+    month = str(currdate.month).rjust(2, '0')
+    year = str(currdate.year)
+
+    daily_file = getCsvFile(month,day,year)
+
+    git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
     
+    put_dynamo_check(day,month,year,git_status)
     
     curr_date = curr_date + timedelta(days=1)
