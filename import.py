@@ -12,16 +12,20 @@ import pandas as pd
 import re
 import requests
 
+from git import Repo
+from datetime import datetime, timedelta
 
 ## Variables
 
 ### Source
-git_source = "https://github.com/CSSEGISandData/COVID-19.git"
 git_s3_store = "tanmatth-emr"
 git_s3_store_key = "/covid19/git/COVID-19/"
 
 ### Temp storage on container
-temp_location = "/data/git/"
+temp_location = "/data/git/COVID-19/"
+
+### DynamoDB
+item_table = "covid19_download_status"
 
 ### Destination
 dest_s3_bucket = "tanmatth-emr"
@@ -35,6 +39,11 @@ timeseries_reports = "csse_covid_19_time_series"
 ### S3 Objects
 s3_client = boto3.client('s3')
 s3_resource = boto3.resource('s3')
+
+### dates
+world_start_date = datetime.strptime("2020-03-22",'%Y-%m-%d')
+us_start_date = datetime.strptime("2020-04-12",'%Y-%m-%d')
+end_date = datetime.today() - 1 * timedelta(days=1)
 
 def download_dir(prefix, local, bucket, client=s3_client):
     """
@@ -76,25 +85,61 @@ def download_dir(prefix, local, bucket, client=s3_client):
     
     return keys
 
+def put_dynamo_check(day,month,year,git_status):
+  dynamodb = boto3.resource("dynamodb", region_name='us-east-2')
+  table = dynamodb.Table('covid19_download_status')
+  datetime_value = year + '-' + month + '-' + day
+  filename_value = month + '-' + day + '-' + year + '.csv'
+
+  table.put_item(
+    Item={
+      'datetime': datetime_value,
+      'filename': filename_value,
+      'gitstatus': git_status
+    }
+  )
+
+def upload_s3(day,month,year,jhu_file):
+  daily_file = "daily.csv"
+  s3 = boto3.resource('s3')
+  s3key = rootkey + 'year=' + year + '/month=' + month + '/day=' + day + '/' + daily_file
+  s3.meta.client.upload_file(jhu_folder + jhu_file, bucket, s3key)
+
+  return_msg = "Uploaded to S3 on s3://" + bucket + '/' + s3key
+
+  return return_msg
+
 ### Main code starts here
 ###################################
 
-k = download_dir(git_s3_store_key, temp_location, git_s3_store, s3_client)
-keys_str = str(k)
+#k = download_dir(git_s3_store_key, temp_location, git_s3_store, s3_client)
+#keys_str = str(k)
 ## Check local repo diff with remote repo
-repo = Repo(local_git_folder)
-origin = repo.remotes.origin
-print("REMOTE:" + origin.url)
-origin.fetch()
-diff_txt = repo.git.diff("--stat", "HEAD",  "origin/master", local_git_folder)
-diff_txt.count("/csse_covid_19_daily_reports/")
+#repo = Repo(local_git_folder)
+#origin = repo.remotes.origin
+#print("REMOTE:" + origin.url)
+#origin.fetch()
+#diff_txt = repo.git.diff("--stat", "HEAD",  "origin/master", local_git_folder)
+#diff_txt.count("/csse_covid_19_daily_reports/")
 
 #jhu_changes = re.findall("\/csse_covid_19_daily_reports\/.*.csv", diff_txt)
   
 ## Pull latest changes from remote
-origin.pull()
+#origin.pull()
 
 ## Upload pulled data back into S3 git store
-s3_updates = upload_files(local_git_folder,source_bucket,source_key)
+#s3_updates = upload_files(local_git_folder,source_bucket,source_key)
 
 ## Upload new data into JHU S3 store
+
+
+
+#status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", "/data/git/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports/08-07-2020.csv")
+
+
+curr_date = world_start_date
+for i in range( (end_date - world_start_date).days + 1 ):
+    print(curr_date)
+    
+    
+    curr_date = curr_date + timedelta(days=1)
