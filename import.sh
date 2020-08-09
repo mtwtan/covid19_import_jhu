@@ -21,4 +21,4 @@ fi
 
 aws s3 cp --recursive ${localGitFolder} s3://${s3bucket}${s3key}
 
-./import.py
+/usr/share/application/import/import.py
