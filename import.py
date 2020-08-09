@@ -110,10 +110,10 @@ def put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
 def upload_s3(day,month,year,source,dest_bucket,dest_key):
   daily_file = "daily.csv"
   s3 = boto3.resource('s3')
-  s3key = dest_key + 'year=' + year + '/month=' + month + '/day=' + day + '/' + daily_file
-  s3.meta.client.upload_file(source, dest_bucket, s3key)
+  #s3key = dest_key + 'year=' + year + '/month=' + month + '/day=' + day + '/' + daily_file
+  s3.meta.client.upload_file(source, dest_bucket, dest_key)
 
-  return_msg = "Uploaded to S3 on s3://" + dest_bucket + '/' + s3key
+  return_msg = "Uploaded to S3 on s3://" + dest_bucket + '/' + dest_key
 
   return return_msg
 
