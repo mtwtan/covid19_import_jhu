@@ -150,9 +150,9 @@ repo = Repo(temp_location)
 
 for i in range( (end_date - world_start_date).days ):
     print(curr_date)
-    day = str(currdate.day).rjust(2, '0')
-    month = str(currdate.month).rjust(2, '0')
-    year = str(currdate.year)
+    day = str(curr_date.day).rjust(2, '0')
+    month = str(curr_date.month).rjust(2, '0')
+    year = str(curr_date.year)
 
     daily_file = getCsvFile(month,day,year)
 
