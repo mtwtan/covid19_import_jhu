@@ -113,7 +113,7 @@ def upload_s3(day,month,year,source,dest_bucket,dest_key):
   s3key = dest_key + 'year=' + year + '/month=' + month + '/day=' + day + '/' + daily_file
   s3.meta.client.upload_file(source, dest_bucket, s3key)
 
-  return_msg = "Uploaded to S3 on s3://" + bucket + '/' + s3key
+  return_msg = "Uploaded to S3 on s3://" + dest_bucket + '/' + s3key
 
   return return_msg
 
