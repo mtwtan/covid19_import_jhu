@@ -30,6 +30,7 @@ item_table = "covid19_download_status"
 ### Destination
 dest_s3_bucket = "tanmatth-emr"
 dest_s3_basekey = "/covid-19/jhu/"
+dest_s3_daily_file = "daily.csv"
 
 ### Data type folders
 data_folder = "csse_covid_19_data/"
@@ -98,19 +99,19 @@ def put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
 
   table.put_item(
     Item={
-      'itemid': item_id_prefix+datetime_value,
-      'datetime': datetime_value,
+      'itemid': item_id_prefix+'-'+datetime_value,
+      'datetime': datetime_value,   
       'filename': filename_value,
       'data_category': data_category,
       'gitstatus': git_status
     }
   )
 
-def upload_s3(day,month,year,jhu_file):
+def upload_s3(day,month,year,source,dest_bucket,dest_key):
   daily_file = "daily.csv"
   s3 = boto3.resource('s3')
-  s3key = rootkey + 'year=' + year + '/month=' + month + '/day=' + day + '/' + daily_file
-  s3.meta.client.upload_file(jhu_folder + jhu_file, bucket, s3key)
+  s3key = dest_key + 'year=' + year + '/month=' + month + '/day=' + day + '/' + daily_file
+  s3.meta.client.upload_file(source, dest_bucket, s3key)
 
   return_msg = "Uploaded to S3 on s3://" + bucket + '/' + s3key
 
@@ -163,5 +164,11 @@ for i in range( (end_date - world_start_date).days ):
     git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
     
     put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+
+    source = temp_location + data_folder + world_reports + daily_file
+    
+    dest_key = dest_s3_basekey + data_folder + world_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
+
+    print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
     
     curr_date = curr_date + timedelta(days=1)
