@@ -29,7 +29,7 @@ item_table = "covid19_download_status"
 
 ### Destination
 dest_s3_bucket = "tanmatth-emr"
-dest_s3_basekey = "/covid-19/jhu/"
+dest_s3_basekey = "covid-19/jhu/"
 dest_s3_daily_file = "daily.csv"
 
 ### Data type folders
@@ -170,5 +170,5 @@ for i in range( (end_date - world_start_date).days ):
     dest_key = dest_s3_basekey + data_folder + world_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
 
     print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
-    
+
     curr_date = curr_date + timedelta(days=1)
