@@ -90,16 +90,18 @@ def getCsvFile(month,day,year):
   jhu_file = month + "-" + day + "-" + year + ".csv"
   return jhu_file
 
-def put_dynamo_check(day,month,year,git_status):
+def put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
   dynamodb = boto3.resource("dynamodb", region_name='us-east-2')
-  table = dynamodb.Table('covid19_download_status')
+  table = dynamodb.Table('covid19_csse_download_status')
   datetime_value = year + '-' + month + '-' + day
   filename_value = month + '-' + day + '-' + year + '.csv'
 
   table.put_item(
     Item={
+      'itemid': item_id_prefix+datetime_value,
       'datetime': datetime_value,
       'filename': filename_value,
+      'data_category': data_category,
       'gitstatus': git_status
     }
   )
@@ -145,6 +147,8 @@ def upload_s3(day,month,year,jhu_file):
 
 curr_date = world_start_date
 world_folder = temp_location + data_folder + world_reports
+data_category = "world daily reports"
+item_id_prefix = "1"
 
 repo = Repo(temp_location)
 
@@ -158,6 +162,6 @@ for i in range( (end_date - world_start_date).days ):
 
     git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
     
-    put_dynamo_check(day,month,year,git_status)
+    put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
     
     curr_date = curr_date + timedelta(days=1)
