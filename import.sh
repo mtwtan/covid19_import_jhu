@@ -27,4 +27,4 @@ git pull
 
 aws s3 cp --recursive ${localGitFolder} s3://${s3bucket}${s3key}
 
-/usr/share/application/import/import.py
+/usr/share/application/import/import.py && tail -f /dev/null
