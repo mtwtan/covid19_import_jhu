@@ -169,7 +169,12 @@ def upload_update(month,day,year,folder,daily_file,item_id_prefix,data_category)
   print(year+"/"+month+"/"+day)
   print(item)
 
-  curr_git_status = item.get("Item").get("gitstatus")
+  curr_item = item.get("Item")
+
+  if curr_item:
+    curr_git_status = item.get("Item").get("gitstatus")
+  else:
+    curr_git_status = False
 
   uploady = True
     
