@@ -103,7 +103,7 @@ def get_dynamo_check(item_id_prefix,day,month,year):
     }
   )
 
-  return item.get("Item")
+  return item
 
 def put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
   dynamodb = boto3.resource("dynamodb", region_name='us-east-2')
