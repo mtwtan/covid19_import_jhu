@@ -160,7 +160,7 @@ def upload_s3(day,month,year,source,dest_bucket,dest_key):
 
   return return_msg
 
-def upload_update(month,day,year,folder,daily_file,item_id_prefix,data_category):
+def upload_update(month,day,year,folder,specific_data_folder,daily_file,item_id_prefix,data_category):
 
   git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
 
@@ -188,8 +188,8 @@ def upload_update(month,day,year,folder,daily_file,item_id_prefix,data_category)
     put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
 
   if uploady == True:
-    source = temp_location + data_folder + world_reports + daily_file
-    dest_key = dest_s3_basekey + data_folder + world_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
+    source = temp_location + data_folder + specific_data_folder + daily_file
+    dest_key = dest_s3_basekey + data_folder + specific_data_folder + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
 
     print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
 
@@ -215,7 +215,7 @@ for i in range( (end_date - world_start_date).days + 1 ):
 
     daily_file = getCsvFile(month,day,year)
 
-    upload_update(month,day,year,world_folder,daily_file,item_id_prefix,data_category)
+    upload_update(month,day,year,world_folder,world_reports,daily_file,item_id_prefix,data_category)
 
     #daily_file = getCsvFile(month,day,year)
 
@@ -261,7 +261,7 @@ for r in range( (end_date - us_start_date).days + 1):
 
   daily_file = getCsvFile(month,day,year)
 
-  upload_update(month,day,year,us_folder,daily_file,item_id_prefix,data_category)
+  upload_update(month,day,year,us_folder,us_only_reports,daily_file,item_id_prefix,data_category)
 
   #git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", us_folder + daily_file)
 
@@ -279,7 +279,7 @@ for r in range( (end_date - us_start_date).days + 1):
 
 # Time series
 
-time_series_list = [time_series_covid19_confirmed_US, time_series_covid19_confirmed_global, time_series_covid19_deaths_US, time_series_covid19_deaths_global, time_series_covid19_recovered_global]
+time_series_list = ["time_series_covid19_confirmed_US", "time_series_covid19_confirmed_global", "time_series_covid19_deaths_US", "time_series_covid19_deaths_global", "time_series_covid19_recovered_global"]
 
 source = temp_location + data_folder + timeseries_reports
 series_file = "series.csv"
