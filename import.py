@@ -123,6 +123,17 @@ def put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
     }
   )
 
+def search_dynamo(item_id_prefix,day,month,year):
+  dynamodb = boto3.resource("dynamodb", region_name='us-east-2')
+  table = dynamodb.Table('covid19_csse_download_status')
+  datetime_value = year + '-' + month + '-' + day
+
+  s = table.query(
+    KeyConditionExpression=Key('itemid').eq(item_id_prefix+'-'+datetime_value)
+  )
+
+  return s.get("Items")
+
 def update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
   dynamodb = boto3.resource("dynamodb", region_name='us-east-2')
   table = dynamodb.Table('covid19_csse_download_status')
@@ -141,7 +152,6 @@ def update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
 
 
 def upload_s3(day,month,year,source,dest_bucket,dest_key):
-  daily_file = "daily.csv"
   s3 = boto3.resource('s3')
   #s3key = dest_key + 'year=' + year + '/month=' + month + '/day=' + day + '/' + daily_file
   s3.meta.client.upload_file(source, dest_bucket, dest_key)
@@ -150,16 +160,29 @@ def upload_s3(day,month,year,source,dest_bucket,dest_key):
 
   return return_msg
 
-def search_dynamo(item_id_prefix,day,month,year):
-  dynamodb = boto3.resource("dynamodb", region_name='us-east-2')
-  table = dynamodb.Table('covid19_csse_download_status')
-  datetime_value = year + '-' + month + '-' + day
+def upload_update(month,day,year,folder,daily_file,item_id_prefix,data_category):
 
-  s = table.query(
-    KeyConditionExpression=Key('itemid').eq(item_id_prefix+'-'+datetime_value)
-  )
+  git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
 
-  return s.get("Items")
+  item = get_dynamo_check(item_id_prefix,day,month,year)
+  curr_git_status = item.get("Item").get("gitstatus")
+
+  uploady = True
+    
+  if item.get("Item"):
+    if curr_git_status == git_status:
+      uploady = False
+      print("Will not copy as status same")
+    else:
+      update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+  else:
+    put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+
+  if uploady == True:
+    source = temp_location + data_folder + world_reports + daily_file
+    dest_key = dest_s3_basekey + data_folder + world_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
+
+    print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
 
 
 ### Main code starts here
@@ -183,18 +206,34 @@ for i in range( (end_date - world_start_date).days + 1 ):
 
     daily_file = getCsvFile(month,day,year)
 
-    git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
+    upload_update(month,day,year,world_folder,daily_file,item_id_prefix,data_category)
+
+    #daily_file = getCsvFile(month,day,year)
+
+    #git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
+
+    #item = get_dynamo_check(item_id_prefix,day,month,year)
+    #curr_git_status = item.get("Item").get("gitstatus")
+
+    #uploady = True
     
-    if ( get_dynamo_check(item_id_prefix,day,month,year) ):
-      update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
-    else:
-      put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+    #if item.get("Item"):
+    #  if curr_git_status == git_status:
+    #    uploady = False
+    #    print("Will not copy as status same")
+    #  else:
+    #    update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+    #else:
+    #  put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
 
-    source = temp_location + data_folder + world_reports + daily_file
-    dest_key = dest_s3_basekey + data_folder + world_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
+    #if uploady == True:
+    #  source = temp_location + data_folder + world_reports + daily_file
+    #  dest_key = dest_s3_basekey + data_folder + world_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
 
-    print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
+    #  print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
 
+
+    # Add 1 day ti curr_date
     curr_date = curr_date + timedelta(days=1)
 
 
@@ -213,16 +252,18 @@ for r in range( (end_date - us_start_date).days + 1):
 
   daily_file = getCsvFile(month,day,year)
 
-  git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", us_folder + daily_file)
+  upload_update(month,day,year,us_folder,daily_file,item_id_prefix,data_category)
 
-  if ( get_dynamo_check(item_id_prefix,day,month,year) ):
-    update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
-  else:
-    put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+  #git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", us_folder + daily_file)
+
+  #if ( get_dynamo_check(item_id_prefix,day,month,year) ):
+  #  update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+  #else:
+  #  put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
   
-  source = temp_location + data_folder + us_only_reports + daily_file
-  dest_key = dest_s3_basekey + data_folder + us_only_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
+  #source = temp_location + data_folder + us_only_reports + daily_file
+  #dest_key = dest_s3_basekey + data_folder + us_only_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
 
-  print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
+  #print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
 
   curr_date = curr_date + timedelta(days=1)
