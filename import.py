@@ -165,6 +165,10 @@ def upload_update(month,day,year,folder,daily_file,item_id_prefix,data_category)
   git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
 
   item = get_dynamo_check(item_id_prefix,day,month,year)
+  
+  print(year+"/"+month+"/"+day)
+  print(item)
+
   curr_git_status = item.get("Item").get("gitstatus")
 
   uploady = True
