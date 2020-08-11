@@ -143,7 +143,7 @@ def update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
 
   table.update_item(
     Key={'itemid': item_id_prefix+'-'+datetime_value, 'datetime': datetime_value},
-    UpdateExpression="SET gitstatus=:git_status, update_datetime=:update_datetime",
+    UpdateExpression="SET gitstatus=:gitstatus, update_datetime=:update_datetime",
     ExpressionAttributeValues={
         ":gitstatus": git_status,
         ":update_datetime": now_date,
