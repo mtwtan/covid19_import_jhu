@@ -267,3 +267,18 @@ for r in range( (end_date - us_start_date).days + 1):
   #print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
 
   curr_date = curr_date + timedelta(days=1)
+
+# Time series
+
+time_series_list = [time_series_covid19_confirmed_US, time_series_covid19_confirmed_global, time_series_covid19_deaths_US, time_series_covid19_deaths_global, time_series_covid19_recovered_global]
+
+source = temp_location + data_folder + timeseries_reports
+series_file = "series.csv"
+
+s3 = boto3.resource('s3')
+
+for series in time_series_list:
+  source_file = source + series + ".csv"
+  dest_key = dest_s3_basekey + data_folder + timeseries_reports + series + "/" + series_file
+
+  s3.meta.client.upload_file(source_file, dest_s3_bucket, dest_key)

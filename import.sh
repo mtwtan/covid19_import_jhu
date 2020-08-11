@@ -12,12 +12,18 @@ numS3Files=$(aws s3 ls s3://tanmatth-emr/covid19/git/COVID-19/ | wc -l)
 git_source="https://github.com/CSSEGISandData/COVID-19.git"
 
 cd ${localGit}
-
-if [ "$numFiles" -eq "1" ]; then
+if [ "$numS3Files" -eq "1" ]; then
   git clone ${git_source}
 else
-  git pull
+  aws s3 cp --recursive s3://${s3bucket}${s3key} ${localGitFolder}
 fi
+
+git pull
+
+#if [ "$numFiles" -eq "1" ]; then
+#  git clone ${git_source}
+#else
+#fi
 
 aws s3 cp --recursive ${localGitFolder} s3://${s3bucket}${s3key}
 
