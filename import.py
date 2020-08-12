@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import re
 import requests
+import time
 
 from git import Repo
 from datetime import datetime, timedelta
@@ -46,6 +47,19 @@ s3_resource = boto3.resource('s3')
 world_start_date = datetime.strptime("2020-03-22",'%Y-%m-%d')
 us_start_date = datetime.strptime("2020-04-12",'%Y-%m-%d')
 end_date = datetime.today() - 1 * timedelta(days=1)
+
+### Data Category
+data_category_dict = {
+  "1": "world daily reports",
+  "2": "us daily reports",
+  "3": "time series summary"
+}
+
+def crawl(crawler):
+  client = boto3.client('glue',region_name='us-east-2')
+  response = client.start_crawler(Name=crawler)
+
+  return response
 
 def download_dir(prefix, local, bucket, client=s3_client):
     """
@@ -87,6 +101,12 @@ def download_dir(prefix, local, bucket, client=s3_client):
     
     return keys
 
+def get_crawler_status(crawler):
+  client = boto3.client('glue',region_name='us-east-2')
+  response = client.get_crawler(Name=crawler)
+
+  return response
+
 def getCsvFile(month,day,year):
   jhu_file = month + "-" + day + "-" + year + ".csv"
   return jhu_file
@@ -120,6 +140,21 @@ def put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status):
       'filename': filename_value,
       'data_category': data_category,
       'gitstatus': git_status
+    }
+  )
+
+def put_dynamo_crawl(item_id_prefix,data_category,status,s3_path,last_updated_date, last_updated_time):
+  dynamodb = boto3.resource("dynamodb", region_name='us-east-2')
+  table = dynamodb.Table('covid19_crawler_status')
+  
+  table.put_item(
+    Item={
+      'crawlid': item_id_prefix+'-'+last_updated_date,
+      'datetime': last_updated_date,
+      'data_category': data_category,
+      'status': status,
+      's3_path': s3_path,
+      'last_updated_date': last_updated_time
     }
   )
 
@@ -204,8 +239,10 @@ repo = Repo(temp_location)
 
 curr_date = world_start_date
 world_folder = temp_location + data_folder + world_reports
-data_category = "world daily reports"
+#data_category = "world daily reports"
 item_id_prefix = "1"
+data_category = data_category_dict.get(item_id_prefix)
+
 
 for i in range( (end_date - world_start_date).days + 1 ):
     print(curr_date)
@@ -217,31 +254,6 @@ for i in range( (end_date - world_start_date).days + 1 ):
 
     upload_update(month,day,year,world_folder,world_reports,daily_file,item_id_prefix,data_category)
 
-    #daily_file = getCsvFile(month,day,year)
-
-    #git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
-
-    #item = get_dynamo_check(item_id_prefix,day,month,year)
-    #curr_git_status = item.get("Item").get("gitstatus")
-
-    #uploady = True
-    
-    #if item.get("Item"):
-    #  if curr_git_status == git_status:
-    #    uploady = False
-    #    print("Will not copy as status same")
-    #  else:
-    #    update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
-    #else:
-    #  put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
-
-    #if uploady == True:
-    #  source = temp_location + data_folder + world_reports + daily_file
-    #  dest_key = dest_s3_basekey + data_folder + world_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
-
-    #  print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
-
-
     # Add 1 day ti curr_date
     curr_date = curr_date + timedelta(days=1)
 
@@ -250,8 +262,9 @@ for i in range( (end_date - world_start_date).days + 1 ):
 
 curr_date = us_start_date
 us_folder = temp_location + data_folder + us_only_reports
-data_category = "us daily reports"
+#data_category = "us daily reports"
 item_id_prefix = "2"
+data_category = data_category_dict.get(item_id_prefix)
 
 for r in range( (end_date - us_start_date).days + 1):
   print(curr_date)
@@ -262,18 +275,6 @@ for r in range( (end_date - us_start_date).days + 1):
   daily_file = getCsvFile(month,day,year)
 
   upload_update(month,day,year,us_folder,us_only_reports,daily_file,item_id_prefix,data_category)
-
-  #git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", us_folder + daily_file)
-
-  #if ( get_dynamo_check(item_id_prefix,day,month,year) ):
-  #  update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
-  #else:
-  #  put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
-  
-  #source = temp_location + data_folder + us_only_reports + daily_file
-  #dest_key = dest_s3_basekey + data_folder + us_only_reports + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
-
-  #print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
 
   curr_date = curr_date + timedelta(days=1)
 
@@ -291,3 +292,44 @@ for series in time_series_list:
   dest_key = dest_s3_basekey + data_folder + timeseries_reports + series + "/" + series_file
 
   s3.meta.client.upload_file(source_file, dest_s3_bucket, dest_key)
+
+# Crawler
+
+crawler_list = ["covid19_csse_world_daily_report","covid19_csse_us_states_daily_report","covid19_csse_time_series_report"]
+
+for crawler in crawler_list:
+  response = crawl(crawler)
+
+# Wait 5 min before checking 
+
+count = 0
+sec = 0
+
+print("Waiting for crawling to complete")
+
+while count < 20:
+  print(sec)
+  print(datetime.now().strftime("%H:%M:%S"))
+  time.sleep(15)
+  count += 1
+  sec += 15
+
+print("Check status of last crawl")
+
+item_id_prefix = 1
+
+for crawler in crawler_list:
+  response = get_crawler_status(crawler)
+  status = response.get("Crawler").get("LastCrawl").get("Status")
+  s3_path = response.get("Crawler").get("Targets").get("S3Targets")[0].get("Path")
+  last_updated_response = response.get("Crawler").get("LastCrawl").get("StartTime")
+  last_updated_date = last_updated_response.strftime("%Y-%m-%d")
+  last_updated_time = last_updated_response.strftime("%H:%M:%S")
+  data_category = data_category_dict.get(item_id_prefix)
+
+  put_dynamo_crawl(item_id_prefix,data_category,status,s3_path,last_updated_date, last_updated_time)
+
+  print("Updating crawl status to dynamodb: " + data_category + " | status: " + status)
+
+  item_id_prefix += 1
+  
