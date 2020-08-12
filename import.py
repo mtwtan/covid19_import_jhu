@@ -325,10 +325,11 @@ for crawler in crawler_list:
   last_updated_response = response.get("Crawler").get("LastCrawl").get("StartTime")
   last_updated_date = last_updated_response.strftime("%Y-%m-%d")
   last_updated_time = last_updated_response.strftime("%H:%M:%S")
-  data_category = data_category_dict.get(item_id_prefix)
+  data_category = data_category_dict.get(str(item_id_prefix))
 
-  put_dynamo_crawl(item_id_prefix,data_category,status,s3_path,last_updated_date, last_updated_time)
-
+  put_dynamo_crawl(str(item_id_prefix),data_category,status,s3_path,last_updated_date, last_updated_time)
+  print(data_category)
+  print(status)
   print("Updating crawl status to dynamodb: " + data_category + " | status: " + status)
 
   item_id_prefix += 1
