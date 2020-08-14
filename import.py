@@ -197,7 +197,7 @@ def upload_s3(day,month,year,source,dest_bucket,dest_key):
 
 def upload_update(month,day,year,folder,specific_data_folder,daily_file,item_id_prefix,data_category):
 
-  git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", world_folder + daily_file)
+  git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", folder + daily_file)
 
   item = get_dynamo_check(item_id_prefix,day,month,year)
   
