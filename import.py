@@ -197,37 +197,42 @@ def upload_s3(day,month,year,source,dest_bucket,dest_key):
 
 def upload_update(month,day,year,folder,specific_data_folder,daily_file,item_id_prefix,data_category):
 
-  git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", folder + daily_file)
+  isExist = os.path.exists(folder + daily_file)
 
-  item = get_dynamo_check(item_id_prefix,day,month,year)
+  if isExist:
+    git_status = repo.git.log("-n", "1", "--pretty=format:%ar", "--", folder + daily_file)
+
+    item = get_dynamo_check(item_id_prefix,day,month,year)
   
-  print(year+"/"+month+"/"+day)
-  print(item)
+    print(year+"/"+month+"/"+day)
+    print(item)
 
-  curr_item = item.get("Item")
+    curr_item = item.get("Item")
 
-  if curr_item:
-    curr_git_status = item.get("Item").get("gitstatus")
-  else:
-    curr_git_status = False
-
-  uploady = True
-    
-  if item.get("Item"):
-    if curr_git_status == git_status:
-      uploady = False
-      print("Will not copy as status same")
+    if curr_item:
+      curr_git_status = item.get("Item").get("gitstatus")
     else:
-      update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+      curr_git_status = False
+
+    uploady = True
+    
+    if item.get("Item"):
+      if curr_git_status == git_status:
+        uploady = False
+        print("Will not copy as status same")
+      else:
+        update_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+    else:
+      put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
+
+    if uploady == True:
+      source = temp_location + data_folder + specific_data_folder + daily_file
+      dest_key = dest_s3_basekey + data_folder + specific_data_folder + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
+
+      print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
+
   else:
-    put_dynamo_check(item_id_prefix,day,month,year,data_category,git_status)
-
-  if uploady == True:
-    source = temp_location + data_folder + specific_data_folder + daily_file
-    dest_key = dest_s3_basekey + data_folder + specific_data_folder + 'year=' + year + '/month=' + month + '/day=' + day + '/' + dest_s3_daily_file
-
-    print(upload_s3(day,month,year,source,dest_s3_bucket,dest_key))
-
+    print("File " + folder + daily_file + " does not exist. Not processing this date. Daily file does not exist yet.")
 
 ### Main code starts here
 ###################################
