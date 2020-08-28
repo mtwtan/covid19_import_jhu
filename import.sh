@@ -8,7 +8,7 @@ localGitFolder="${localGit}/${gitFolder}/"
 s3bucket="tanmatth-emr"
 s3key="/covid-19/jhu/COVID-19/"
 numFiles=$(ls -l ${localGit} | wc -l)
-numS3Files=$(aws s3 ls s3://tanmatth-emr/covid19/git/COVID-19/ | wc -l)
+numS3Files=$(aws s3 ls s3://<bucket name>/covid19/git/COVID-19/ | wc -l)
 git_source="https://github.com/CSSEGISandData/COVID-19.git"
 
 cd ${localGit}
