@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 ## Variables
 
 ### Source
-git_s3_store = "tanmatth-emr"
+git_s3_store = "<bucket name>"
 git_s3_store_key = "/covid19/git/COVID-19/"
 
 ### Temp storage on container
@@ -29,7 +29,7 @@ temp_location = "/data/git/COVID-19/"
 item_table = "covid19_download_status"
 
 ### Destination
-dest_s3_bucket = "tanmatth-emr"
+dest_s3_bucket = "<bucket name>"
 dest_s3_basekey = "covid-19/jhu/"
 dest_s3_daily_file = "daily.csv"
 
